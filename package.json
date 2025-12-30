@@ -1,0 +1,28 @@
+{
+  "name": "soulhit-3d-experience",
+  "version": "1.0.0",
+  "description": "Professional Three.js 3D experience with glass effects and particles",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "gsap": "^3.12.5",
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "lil-gui": "^0.19.2",
+    "vite": "^6.0.5"
+  },
+  "keywords": [
+    "three.js",
+    "webgl",
+    "3d",
+    "gsap",
+    "particles"
+  ],
+  "author": "",
+  "license": "MIT"
+}

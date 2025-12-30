@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Soulhit 3D Experience - Interactive WebGL visualization">
+    <title>Soulhit 3D Experience</title>
+    <link rel="stylesheet" href="./src/style.css">
+</head>
+<body>
+    <!-- WebGL Canvas -->
+    <canvas id="webgl"></canvas>
+
+    <!-- Scroll Progress Indicator -->
+    <div class="scroll-progress" id="scroll-progress"></div>
+
+    <!-- Scroll Indicator -->
+    <div class="scroll-indicator" id="scroll-indicator">
+        <div class="scroll-indicator__mouse">
+            <div class="scroll-indicator__wheel"></div>
+        </div>
+        <span class="scroll-indicator__text">Scroll</span>
+    </div>
+
+    <!-- Content Overlay -->
+    <div id="content">
+        <!-- Hero Section -->
+        <section class="scroll-section scroll-section--hero" data-section="hero">
+            <header>
+                <h1>Soulhit</h1>
+            </header>
+        </section>
+
+        <!-- Section 1: Explore -->
+        <section class="scroll-section scroll-section--content" data-section="explore">
+            <div class="section-content">
+                <h2>Explore</h2>
+                <p>Dive into an immersive 3D experience powered by advanced particle systems and real-time rendering.</p>
+            </div>
+        </section>
+
+        <!-- Section 2: Discover -->
+        <section class="scroll-section scroll-section--content" data-section="discover">
+            <div class="section-content">
+                <h2>Discover</h2>
+                <p>Interactive elements respond to your movements, creating a unique connection between you and the digital world.</p>
+            </div>
+        </section>
+
+        <!-- Section 3: Connect -->
+        <section class="scroll-section scroll-section--content" data-section="connect">
+            <div class="section-content">
+                <h2>Connect</h2>
+                <p>Where technology meets artistry, transforming data into breathtaking visual experiences.</p>
+            </div>
+        </section>
+
+        <!-- Spacer for extra scroll -->
+        <section class="scroll-section scroll-section--spacer" data-section="end">
+        </section>
+    </div>
+
+    <!-- Main Application Entry Point -->
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html>
