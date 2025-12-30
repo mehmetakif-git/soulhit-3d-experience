@@ -77,6 +77,20 @@ class CameraManager {
         /** @type {THREE.Vector3} Temporary vector for calculations */
         this._tempVector = new THREE.Vector3();
 
+        /** @type {THREE.Vector3} Camera offset (for shake effects) */
+        this._offset = new THREE.Vector3(0, 0, 0);
+
+        /** @type {THREE.Vector3} Target offset (for device orientation) */
+        this._targetOffset = new THREE.Vector3(0, 0, 0);
+
+        /** @type {Object} Shake state */
+        this._shake = {
+            active: false,
+            intensity: 0,
+            duration: 0,
+            elapsed: 0
+        };
+
         // Initial look-at
         this.camera.lookAt(this.lookAtPoint);
 
@@ -114,27 +128,84 @@ class CameraManager {
      * @param {number} deltaTime - Time since last frame
      */
     update(deltaTime) {
+        // Update shake effect
+        this._updateShake(deltaTime);
+
+        // Lerp target offset
+        this._offset.lerp(this._targetOffset, this.lerpFactor);
+
         // Apply parallax offset to target position
         if (this.parallaxEnabled) {
             const parallaxX = this.mouse.x * this.parallaxIntensity;
             const parallaxY = this.mouse.y * this.parallaxIntensity;
 
             this._tempVector.set(
-                this.targetPosition.x + parallaxX,
-                this.targetPosition.y + parallaxY,
-                this.targetPosition.z
+                this.targetPosition.x + parallaxX + this._offset.x,
+                this.targetPosition.y + parallaxY + this._offset.y,
+                this.targetPosition.z + this._offset.z
             );
 
             // Smooth lerp to target position
             this.camera.position.lerp(this._tempVector, this.lerpFactor);
         } else {
             // Smooth lerp to target position without parallax
-            this.camera.position.lerp(this.targetPosition, this.lerpFactor);
+            this._tempVector.copy(this.targetPosition).add(this._offset);
+            this.camera.position.lerp(this._tempVector, this.lerpFactor);
         }
 
         // Smooth lerp for look-at target
         this.lookAtPoint.lerp(this.targetLookAt, this.lerpFactor);
         this.camera.lookAt(this.lookAtPoint);
+    }
+
+    /**
+     * Update camera shake effect
+     * @param {number} deltaTime
+     * @private
+     */
+    _updateShake(deltaTime) {
+        if (!this._shake.active) return;
+
+        this._shake.elapsed += deltaTime;
+
+        if (this._shake.elapsed >= this._shake.duration) {
+            // Shake complete
+            this._shake.active = false;
+            this._offset.set(0, 0, 0);
+            return;
+        }
+
+        // Calculate remaining intensity (fade out)
+        const progress = this._shake.elapsed / this._shake.duration;
+        const currentIntensity = this._shake.intensity * (1 - progress);
+
+        // Random offset
+        this._offset.set(
+            (Math.random() - 0.5) * 2 * currentIntensity,
+            (Math.random() - 0.5) * 2 * currentIntensity,
+            0
+        );
+    }
+
+    /**
+     * Trigger camera shake effect
+     * @param {number} intensity - Shake intensity (default: 0.1)
+     * @param {number} duration - Shake duration in seconds (default: 0.5)
+     */
+    shake(intensity = 0.1, duration = 0.5) {
+        this._shake.active = true;
+        this._shake.intensity = intensity;
+        this._shake.duration = duration;
+        this._shake.elapsed = 0;
+    }
+
+    /**
+     * Set target offset (for device orientation effects)
+     * @param {number} x - X offset
+     * @param {number} y - Y offset
+     */
+    setTargetOffset(x, y) {
+        this._targetOffset.set(x, y, 0);
     }
 
     /**

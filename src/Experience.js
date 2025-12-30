@@ -32,6 +32,7 @@ import { Particles } from './world/Particles.js';
 import { GlassCards } from './world/GlassCards.js';
 import { SpineModel, MaterialType } from './world/SpineModel.js';
 import { LightingSystem } from './world/LightingSystem.js';
+import { WaterSurface } from './world/WaterSurface.js';
 
 // Utility imports
 import { PerformanceManager, QualityLevels } from './utils/PerformanceManager.js';
@@ -454,7 +455,7 @@ class Experience {
     }
 
     /**
-     * Initialize scroll-based events and sections
+     * Initialize scroll-based events and scene triggers
      * @private
      */
     _initScrollEvents() {
@@ -463,155 +464,54 @@ class Experience {
         this.scrollIndicatorElement = document.getElementById('scroll-indicator');
 
         // ==========================================
-        // Register Scroll Sections
+        // Scene Change Handler
         // ==========================================
 
-        // Hero section (0% - 25%)
-        this.scrollManager.addSection({
-            id: 'hero',
-            start: 0,
-            end: 0.25,
-            onEnter: (section) => {
-                console.log('[Experience] Entered hero section');
-                if (this.scrollIndicatorElement) {
+        this.scrollManager.on('sceneChange', (data) => {
+            const { from, to, scene } = data;
+
+            console.log(`%c[Experience] Scene transition: ${from} → ${to}`, 'color: #44ffaa;');
+
+            // Apply scene-specific effects
+            this._applySceneEffects(scene);
+
+            // Handle specific scene transitions
+            switch (to) {
+                case 'hero':
+                    this._onEnterHeroScene();
+                    break;
+                case 'underwater':
+                    this._onEnterUnderwaterScene();
+                    break;
+                case 'spineReveal':
+                    this._onEnterSpineRevealScene();
+                    break;
+                case 'orbital':
+                    this._onEnterOrbitalScene();
+                    break;
+                case 'final':
+                    this._onEnterFinalScene();
+                    break;
+            }
+
+            // Hide scroll indicator after hero
+            if (this.scrollIndicatorElement) {
+                if (to === 'hero') {
                     this.scrollIndicatorElement.classList.remove('hidden');
-                }
-            },
-            onLeave: (section) => {
-                if (this.scrollIndicatorElement) {
+                } else {
                     this.scrollIndicatorElement.classList.add('hidden');
                 }
-            },
-            onProgress: (progress, section) => {
-                // Camera zoom out as user scrolls through hero
-                if (this.app.cameraManager) {
-                    const targetZ = 10 + progress * 5; // 10 -> 15
-                    this.camera.position.z = THREE.MathUtils.lerp(
-                        this.camera.position.z,
-                        targetZ,
-                        0.1
-                    );
-                }
             }
-        });
 
-        // Explore section (25% - 50%)
-        this.scrollManager.addSection({
-            id: 'explore',
-            start: 0.25,
-            end: 0.5,
-            onEnter: (section) => {
-                console.log('[Experience] Entered explore section');
-                this._showSectionContent('explore');
-
-                // Animate glass cards to spread out
-                if (this.world.glassCards) {
-                    gsap.to(this.world.glassCards.getGroup().rotation, {
-                        y: -0.3,
-                        duration: 1,
-                        ease: 'power2.out'
-                    });
-                }
-            },
-            onLeave: (section) => {
-                this._hideSectionContent('explore');
-            },
-            onProgress: (progress, section) => {
-                // Camera orbit
-                if (this.app.cameraManager) {
-                    const orbitAngle = progress * 0.5; // Rotate camera slightly
-                    this.camera.position.x = Math.sin(orbitAngle) * 5;
-                }
+            // Show/hide section content
+            if (from) {
+                this._hideSectionContent(from);
             }
-        });
-
-        // Discover section (50% - 75%)
-        this.scrollManager.addSection({
-            id: 'discover',
-            start: 0.5,
-            end: 0.75,
-            onEnter: (section) => {
-                console.log('[Experience] Entered discover section');
-                this._showSectionContent('discover');
-
-                // Change particle colors
-                if (this.world.particles) {
-                    gsap.to(this.world.particles.material.uniforms.uColor.value, {
-                        r: 1.0,
-                        g: 0.3,
-                        b: 0.5,
-                        duration: 1.5,
-                        ease: 'power2.out'
-                    });
-                }
-
-                // Rotate cards more
-                if (this.world.glassCards) {
-                    gsap.to(this.world.glassCards.getGroup().rotation, {
-                        y: 0.3,
-                        duration: 1,
-                        ease: 'power2.out'
-                    });
-                }
-            },
-            onLeave: (section) => {
-                this._hideSectionContent('discover');
-            },
-            onProgress: (progress, section) => {
-                // Camera orbit continues
-                if (this.app.cameraManager) {
-                    const orbitAngle = 0.5 + progress * 0.5;
-                    this.camera.position.x = Math.sin(orbitAngle) * 5;
-                }
-            }
-        });
-
-        // Connect section (75% - 100%)
-        this.scrollManager.addSection({
-            id: 'connect',
-            start: 0.75,
-            end: 1.0,
-            onEnter: (section) => {
-                console.log('[Experience] Entered connect section');
-                this._showSectionContent('connect');
-
-                // Reset particle colors
-                if (this.world.particles) {
-                    gsap.to(this.world.particles.material.uniforms.uColor.value, {
-                        r: 0.27,
-                        g: 0.53,
-                        b: 1.0,
-                        duration: 1.5,
-                        ease: 'power2.out'
-                    });
-                }
-
-                // Center cards
-                if (this.world.glassCards) {
-                    gsap.to(this.world.glassCards.getGroup().rotation, {
-                        y: 0,
-                        duration: 1,
-                        ease: 'power2.out'
-                    });
-                }
-            },
-            onLeave: (section) => {
-                this._hideSectionContent('connect');
-            },
-            onProgress: (progress, section) => {
-                // Camera returns to center
-                if (this.app.cameraManager) {
-                    this.camera.position.x = THREE.MathUtils.lerp(
-                        this.camera.position.x,
-                        0,
-                        0.1
-                    );
-                }
-            }
+            this._showSectionContent(to);
         });
 
         // ==========================================
-        // Scroll Update Handler
+        // Continuous Scroll Update Handler
         // ==========================================
 
         this.scrollManager.on('update', (scrollData) => {
@@ -619,7 +519,263 @@ class Experience {
             if (this.scrollProgressElement) {
                 this.scrollProgressElement.style.width = `${scrollData.progress * 100}%`;
             }
+
+            // Apply camera position from ScrollManager
+            if (scrollData.cameraPosition && scrollData.lookAtTarget) {
+                this.camera.position.copy(scrollData.cameraPosition);
+                this.camera.lookAt(scrollData.lookAtTarget);
+            }
+
+            // Continuous scene-specific updates
+            this._updateSceneEffects(scrollData);
         });
+    }
+
+    /**
+     * Apply effects when entering a scene
+     * @param {Object} scene - Scene definition with effects
+     * @private
+     */
+    _applySceneEffects(scene) {
+        if (!scene || !scene.effects) return;
+
+        const effects = scene.effects;
+
+        // Update particle color
+        if (effects.particleColor && this.world.particles) {
+            gsap.to(this.world.particles.material.uniforms.uColor.value, {
+                r: effects.particleColor.r,
+                g: effects.particleColor.g,
+                b: effects.particleColor.b,
+                duration: 1.5,
+                ease: 'power2.out'
+            });
+        }
+
+        // Update bloom strength
+        if (effects.bloomStrength !== undefined && this.passes.bloom) {
+            gsap.to(this.passes.bloom, {
+                strength: effects.bloomStrength,
+                duration: 1.0,
+                ease: 'power2.out'
+            });
+        }
+
+        // Update fog density
+        if (effects.fogDensity !== undefined && this.world.environment) {
+            const fogFar = 30 + (1 - effects.fogDensity) * 50;
+            gsap.to(this.scene.fog, {
+                far: fogFar,
+                duration: 1.5,
+                ease: 'power2.out'
+            });
+        }
+
+        // Scene tint via vignette pass
+        if (effects.tint && this.passes.vignette) {
+            // Apply underwater tint effect
+            this.passes.vignette.setTint(effects.tint.r, effects.tint.g, effects.tint.b);
+        }
+    }
+
+    /**
+     * Continuous updates based on scroll progress
+     * @param {Object} scrollData - Current scroll state
+     * @private
+     */
+    _updateSceneEffects(scrollData) {
+        const { scene, localProgress, sceneDefinition } = scrollData;
+
+        // Orbital scene: rotate glass cards with camera
+        if (scene === 'orbital' && sceneDefinition?.effects?.cardsOrbit) {
+            if (this.world.glassCards) {
+                const { startAngle, endAngle } = sceneDefinition.camera;
+                const angle = startAngle + (endAngle - startAngle) * localProgress;
+
+                // Rotate cards container opposite to camera for dramatic effect
+                this.world.glassCards.getGroup().rotation.y = -angle * 0.3;
+            }
+        }
+    }
+
+    /**
+     * Hero scene effects
+     * @private
+     */
+    _onEnterHeroScene() {
+        // Reset everything to initial state
+        if (this.world.spineModel) {
+            gsap.to(this.world.spineModel.getGroup().scale, {
+                x: 0,
+                y: 0,
+                z: 0,
+                duration: 0.5,
+                ease: 'power2.out'
+            });
+        }
+
+        if (this.world.glassCards) {
+            gsap.to(this.world.glassCards.getGroup().rotation, {
+                y: 0,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
+
+        // Clear any tint
+        if (this.passes.vignette) {
+            this.passes.vignette.clearTint();
+        }
+    }
+
+    /**
+     * Underwater dive scene effects
+     * @private
+     */
+    _onEnterUnderwaterScene() {
+        // Show water surface with animation
+        if (this.world.waterSurface) {
+            this.world.waterSurface.show(1.5);
+        }
+
+        // Subtle camera shake effect
+        if (this.app.cameraManager) {
+            this.app.cameraManager.shake(0.1, 0.5);
+        }
+
+        // Increase chromatic aberration
+        if (this.passes.chromatic) {
+            gsap.to(this.passes.chromatic, {
+                intensity: 0.008,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
+    }
+
+    /**
+     * Spine reveal scene effects
+     * @private
+     */
+    _onEnterSpineRevealScene() {
+        // Hide water surface
+        if (this.world.waterSurface) {
+            this.world.waterSurface.hide(1.0);
+        }
+
+        // Reveal the spine model
+        if (this.world.spineModel) {
+            const group = this.world.spineModel.getGroup();
+
+            // Entrance animation
+            gsap.fromTo(group.scale,
+                { x: 0, y: 0, z: 0 },
+                {
+                    x: 1,
+                    y: 1,
+                    z: 1,
+                    duration: 1.5,
+                    ease: 'elastic.out(1, 0.5)'
+                }
+            );
+
+            // Start auto-rotation
+            this.world.spineModel.setAutoRotate(true);
+        }
+
+        // Clear underwater tint
+        if (this.passes.vignette) {
+            this.passes.vignette.clearTint();
+        }
+
+        // Reset chromatic aberration
+        if (this.passes.chromatic) {
+            gsap.to(this.passes.chromatic, {
+                intensity: 0.003,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
+    }
+
+    /**
+     * Orbital camera scene effects
+     * @private
+     */
+    _onEnterOrbitalScene() {
+        // Spread glass cards outward
+        if (this.world.glassCards) {
+            const cards = this.world.glassCards.getCards();
+            cards.forEach((card, i) => {
+                const angle = (i / cards.length) * Math.PI * 2;
+                const radius = 6;
+
+                gsap.to(card.position, {
+                    x: Math.cos(angle) * radius,
+                    z: Math.sin(angle) * radius,
+                    duration: 1.5,
+                    ease: 'power3.out'
+                });
+            });
+        }
+
+        // Increase bloom for dramatic effect
+        if (this.passes.bloom) {
+            gsap.to(this.passes.bloom, {
+                radius: 0.6,
+                threshold: 0.7,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
+    }
+
+    /**
+     * Final reveal scene effects
+     * @private
+     */
+    _onEnterFinalScene() {
+        // Bring glass cards back together
+        if (this.world.glassCards) {
+            const cards = this.world.glassCards.getCards();
+            cards.forEach((card, i) => {
+                gsap.to(card.position, {
+                    x: (i - 1) * 5,
+                    z: 0,
+                    duration: 1.5,
+                    ease: 'power3.out'
+                });
+            });
+
+            // Reset rotation
+            gsap.to(this.world.glassCards.getGroup().rotation, {
+                y: 0,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
+
+        // Stop spine rotation for final pose
+        if (this.world.spineModel) {
+            this.world.spineModel.setAutoRotate(false);
+
+            // Final pose rotation
+            gsap.to(this.world.spineModel.getGroup().rotation, {
+                y: Math.PI * 0.25,
+                duration: 2,
+                ease: 'power2.out'
+            });
+        }
+
+        // Reset bloom
+        if (this.passes.bloom) {
+            gsap.to(this.passes.bloom, {
+                radius: 0.4,
+                threshold: 0.85,
+                duration: 1,
+                ease: 'power2.out'
+            });
+        }
     }
 
     /**
@@ -816,6 +972,30 @@ class Experience {
 
         // Add model group to scene (model loads async)
         this.scene.add(this.world.spineModel.getGroup());
+
+        // ==========================================
+        // Water Surface (Gerstner Waves)
+        // ==========================================
+
+        this._reportProgress(75, 'Creating water surface...');
+
+        this.world.waterSurface = new WaterSurface({
+            width: 100,
+            height: 100,
+            widthSegments: 256,
+            heightSegments: 256,
+            position: new THREE.Vector3(0, -3, 0),
+            steepness: 0.5,
+            waterColorDeep: new THREE.Color(0x001525),
+            waterColorShallow: new THREE.Color(0x1a4d5c),
+            waterColorFoam: new THREE.Color(0xffffff),
+            lightDirection: new THREE.Vector3(0.5, 0.8, 0.3),
+            opacity: 0.85
+        });
+
+        // Initially hidden (shown during underwater scene)
+        this.world.waterSurface.setVisible(false);
+        this.scene.add(this.world.waterSurface.getMesh());
 
         // ==========================================
         // Test Geometry (Central Sphere)
@@ -1263,6 +1443,11 @@ class Experience {
             this.world.spineModel.update(elapsedTime, deltaTime);
         }
 
+        // Update water surface
+        if (this.world.waterSurface) {
+            this.world.waterSurface.update(elapsedTime, deltaTime);
+        }
+
         // Animate test geometry
         if (this.testSphere) {
             this.testSphere.rotation.x += deltaTime * 0.3;
@@ -1408,6 +1593,10 @@ class Experience {
 
         if (this.world.spineModel) {
             this.world.spineModel.dispose();
+        }
+
+        if (this.world.waterSurface) {
+            this.world.waterSurface.dispose();
         }
 
         // Dispose test geometry

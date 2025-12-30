@@ -352,9 +352,37 @@ class VignetteColorGradePass extends Pass {
     setSaturation(value) { this.uniforms.uSaturation.value = value; }
     setGamma(value) { this.uniforms.uGamma.value = value; }
     setTemperature(value) { this.uniforms.uTemperature.value = value; }
-    setTint(value) { this.uniforms.uTint.value = value; }
+    setGreenMagentaTint(value) { this.uniforms.uTint.value = value; }
     setTintColor(color) { this.uniforms.uTintColor.value.set(color); }
     setTintIntensity(value) { this.uniforms.uTintIntensity.value = value; }
+
+    /**
+     * Apply a color tint overlay (for scene effects)
+     * @param {number} r - Red 0-1
+     * @param {number} g - Green 0-1
+     * @param {number} b - Blue 0-1
+     * @param {number} intensity - Tint intensity 0-1
+     */
+    setTint(r, g, b, intensity = 0.3) {
+        this.uniforms.uTintColor.value.setRGB(r, g, b);
+        this.uniforms.uTintIntensity.value = intensity;
+    }
+
+    /**
+     * Clear the color tint overlay
+     */
+    clearTint() {
+        this.uniforms.uTintColor.value.setRGB(1, 1, 1);
+        this.uniforms.uTintIntensity.value = 0;
+    }
+
+    /**
+     * Alias for backward compatibility
+     * @param {string} presetName
+     */
+    setPreset(presetName) {
+        this.applyPreset(presetName);
+    }
 
     /**
      * Render the pass
